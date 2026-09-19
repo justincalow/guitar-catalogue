@@ -8,8 +8,17 @@ import {
 } from './mapGuitar';
 import { getSupabase, PHOTO_BUCKET, SIGNED_URL_TTL_SECONDS } from './supabase';
 
-function throwIfError(error: { message: string } | null, fallback: string): void {
-  if (error) throw new Error(error.message || fallback);
+function throwIfError(
+  error: { message: string; code?: string } | null,
+  fallback: string,
+): void {
+  if (!error) return;
+  if (error.code === 'PGRST205') {
+    throw new Error(
+      'The guitars table is not in this Supabase project yet. Paste supabase/migrations/20260919120000_guitars_and_photos.sql into the SQL editor and run it.',
+    );
+  }
+  throw new Error(error.message || fallback);
 }
 
 async function signPhotoPaths(paths: string[]): Promise<string[]> {

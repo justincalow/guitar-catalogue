@@ -50,7 +50,7 @@ VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Do not put the service role key in the client. `.env.local` is gitignored.
+The URL must be exactly `https://<project-ref>.supabase.co` as shown in the API settings. A mistyped ref will not resolve. Do not put the service role key in the client. `.env.local` is gitignored.
 
 ## Run locally
 
