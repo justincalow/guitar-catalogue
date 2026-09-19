@@ -6,6 +6,7 @@ import { useGuitars } from '../store';
 import type { GuitarType } from '../types';
 import { EmptyState } from '../components/EmptyState';
 import { GuitarCard, GuitarListRow } from '../components/GuitarCard';
+import { ImportBanner } from '../components/ImportBanner';
 
 const TYPE_FILTERS: Array<{ value: 'all' | GuitarType; label: string }> = [
   { value: 'all', label: 'All types' },
@@ -38,13 +39,19 @@ export function CollectionPage() {
   }
 
   if (guitars.length === 0) {
-    return <EmptyState />;
+    return (
+      <>
+        <ImportBanner />
+        <EmptyState />
+      </>
+    );
   }
 
   const filteredEmpty = visible.length === 0;
 
   return (
     <section>
+      <ImportBanner />
       <div className="toolbar">
         <div>
           <h1 className="page-title">The rack</h1>

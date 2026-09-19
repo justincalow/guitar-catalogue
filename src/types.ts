@@ -24,8 +24,10 @@ export interface Guitar {
   conditionNotes: string;
   notes: string;
   photos: string[];
+  /** Storage object paths; empty for unsaved local drafts / IndexedDB imports. */
+  photoPaths: string[];
   createdAt: string;
   updatedAt: string;
 }
 
-export type GuitarDraft = Omit<Guitar, 'id' | 'createdAt' | 'updatedAt'>;
+export type GuitarDraft = Omit<Guitar, 'id' | 'createdAt' | 'updatedAt' | 'photoPaths'>;

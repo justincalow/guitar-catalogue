@@ -32,7 +32,7 @@ export function GuitarFormPage() {
       <h1>{editing ? 'Edit guitar' : 'Add a guitar'}</h1>
       <p className="lede">
         {editing
-          ? 'Update the record. Changes are stored on this device.'
+          ? 'Update the record. Changes sync to your cloud catalogue.'
           : 'Log the instrument as you would in a workshop book — specs, value, and a photo or two.'}
       </p>
       <GuitarForm

@@ -39,8 +39,8 @@ export function PhotoField({ photos, onChange }: PhotoFieldProps) {
     <div className="field file-input">
       <label htmlFor={inputId}>Photos</label>
       <p className="hint">
-        Add one or more pictures. They stay on this device with the rest of the
-        catalogue.
+        Add one or more pictures. They are stored privately with your catalogue
+        and available on any device you sign in from.
       </p>
       {photos.length > 0 ? (
         <div className="photo-grid">

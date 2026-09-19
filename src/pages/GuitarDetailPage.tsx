@@ -145,7 +145,7 @@ export function GuitarDetailPage() {
       <ConfirmDialog
         open={confirming}
         title="Remove this guitar?"
-        message={`“${title}” will be deleted from this catalogue. This cannot be undone.`}
+        message={`“${title}” will be deleted from your catalogue on every device. This cannot be undone.`}
         confirmLabel={busy ? 'Removing…' : 'Delete guitar'}
         onClose={() => setConfirming(false)}
         onConfirm={() => {

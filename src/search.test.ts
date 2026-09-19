@@ -19,6 +19,7 @@ function guitar(overrides: Partial<Guitar>): Guitar {
     conditionNotes: 'Light checking',
     notes: 'Maple neck',
     photos: [],
+    photoPaths: [],
     createdAt: '',
     updatedAt: '',
     ...overrides,
