@@ -21,3 +21,9 @@ export async function fileToStoredPhoto(file: File): Promise<string> {
 
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 }
+
+export async function dataUrlToJpegBlob(dataUrl: string): Promise<Blob> {
+  const response = await fetch(dataUrl);
+  if (!response.ok) throw new Error('Could not read that photo.');
+  return response.blob();
+}

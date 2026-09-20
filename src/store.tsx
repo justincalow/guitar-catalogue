@@ -7,7 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { db } from './db';
+import { useAuth } from './auth';
+import { createGuitar, listGuitars, removeGuitar, saveGuitar } from './lib/catalogue';
 import type { Guitar, GuitarDraft } from './types';
 
 interface GuitarStore {
@@ -18,88 +19,91 @@ interface GuitarStore {
   addGuitar: (draft: GuitarDraft) => Promise<Guitar>;
   updateGuitar: (id: string, draft: GuitarDraft) => Promise<Guitar>;
   deleteGuitar: (id: string) => Promise<void>;
+  reload: () => Promise<void>;
 }
 
 const GuitarContext = createContext<GuitarStore | null>(null);
 
-async function loadAll(): Promise<Guitar[]> {
-  return db.guitars.orderBy('createdAt').reverse().toArray();
-}
-
 export function GuitarProvider({ children }: { children: ReactNode }) {
+  const { user, ready: authReady, configured } = useAuth();
   const [guitars, setGuitars] = useState<Guitar[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const reload = useCallback(async () => {
+    if (!configured || !user) {
+      setGuitars([]);
+      setError(null);
+      setReady(true);
+      return;
+    }
+    setReady(false);
+    try {
+      const rows = await listGuitars();
+      setGuitars(rows);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not open the catalogue.');
+    } finally {
+      setReady(true);
+    }
+  }, [configured, user]);
+
   useEffect(() => {
-    let cancelled = false;
-    loadAll()
-      .then((rows) => {
-        if (!cancelled) {
-          setGuitars(rows);
-          setReady(true);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not open the local catalogue.');
-          setReady(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!authReady) return;
+    void reload();
+  }, [authReady, reload]);
 
   const getById = useCallback(
     (id: string) => guitars.find((guitar) => guitar.id === id),
     [guitars],
   );
 
-  const addGuitar = useCallback(async (draft: GuitarDraft) => {
-    const now = new Date().toISOString();
-    const guitar: Guitar = {
-      ...draft,
-      id: crypto.randomUUID(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    await db.guitars.add(guitar);
-    setGuitars(await loadAll());
-    return guitar;
-  }, []);
+  const addGuitar = useCallback(
+    async (draft: GuitarDraft) => {
+      if (!user) throw new Error('Sign in to add a guitar.');
+      const guitar = await createGuitar(user.id, draft);
+      setGuitars((current) => [guitar, ...current.filter((row) => row.id !== guitar.id)]);
+      return guitar;
+    },
+    [user],
+  );
 
-  const updateGuitar = useCallback(async (id: string, draft: GuitarDraft) => {
-    const existing = await db.guitars.get(id);
-    if (!existing) throw new Error('That guitar is no longer in the catalogue.');
-    const guitar: Guitar = {
-      ...existing,
-      ...draft,
-      id,
-      createdAt: existing.createdAt,
-      updatedAt: new Date().toISOString(),
-    };
-    await db.guitars.put(guitar);
-    setGuitars(await loadAll());
-    return guitar;
-  }, []);
+  const updateGuitar = useCallback(
+    async (id: string, draft: GuitarDraft) => {
+      if (!user) throw new Error('Sign in to update a guitar.');
+      const existing = guitars.find((guitar) => guitar.id === id);
+      if (!existing) throw new Error('That guitar is no longer in the catalogue.');
+      const guitar = await saveGuitar(user.id, existing, draft);
+      setGuitars((current) => current.map((row) => (row.id === id ? guitar : row)));
+      return guitar;
+    },
+    [guitars, user],
+  );
 
-  const deleteGuitar = useCallback(async (id: string) => {
-    await db.guitars.delete(id);
-    setGuitars(await loadAll());
-  }, []);
+  const deleteGuitar = useCallback(
+    async (id: string) => {
+      if (!user) throw new Error('Sign in to delete a guitar.');
+      const existing = guitars.find((guitar) => guitar.id === id);
+      if (!existing) throw new Error('That guitar is no longer in the catalogue.');
+      await removeGuitar(existing);
+      setGuitars((current) => current.filter((row) => row.id !== id));
+    },
+    [guitars, user],
+  );
 
   const value = useMemo(
     () => ({
       guitars,
-      ready,
+      ready: authReady && ready,
       error,
       getById,
       addGuitar,
       updateGuitar,
       deleteGuitar,
+      reload,
     }),
-    [guitars, ready, error, getById, addGuitar, updateGuitar, deleteGuitar],
+    [guitars, authReady, ready, error, getById, addGuitar, updateGuitar, deleteGuitar, reload],
   );
 
   return <GuitarContext.Provider value={value}>{children}</GuitarContext.Provider>;
