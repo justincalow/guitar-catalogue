@@ -1,23 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth';
-
-function authMessage(err: unknown): string {
-  const raw = err instanceof Error ? err.message : 'Could not sign in.';
-  const lower = raw.toLowerCase();
-  if (lower.includes('email not confirmed')) {
-    return 'Check your inbox to confirm this email, then sign in. Confirmation is required until you turn it off in Authentication → Providers → Email.';
-  }
-  if (lower.includes('rate limit')) {
-    return 'Too many emails were sent just now. Wait a minute and try again.';
-  }
-  if (lower.includes('invalid login')) {
-    return 'Email or password is incorrect.';
-  }
-  if (lower.includes('user already registered')) {
-    return 'That email already has an account. Sign in, or use a magic link.';
-  }
-  return raw;
-}
+import { authErrorMessage } from '../lib/authError';
 
 type Mode = 'signin' | 'signup';
 
@@ -56,7 +39,7 @@ export function AuthPage() {
         }
       }
     } catch (err: unknown) {
-      setError(authMessage(err));
+      setError(authErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -74,7 +57,7 @@ export function AuthPage() {
       await sendMagicLink(trimmedEmail);
       setNotice('Magic link sent. Open it on this device to sign in.');
     } catch (err: unknown) {
-      setError(authMessage(err));
+      setError(authErrorMessage(err));
     } finally {
       setBusy(false);
     }

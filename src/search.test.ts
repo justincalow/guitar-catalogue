@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { filterGuitars, uniqueMakes } from './search';
-import type { Guitar } from './types';
+import { emptyDraft, type Guitar } from './types';
 
 function guitar(overrides: Partial<Guitar>): Guitar {
   return {
     id: '1',
+    ...emptyDraft,
     make: 'Fender',
     model: 'Stratocaster',
     year: 1962,
@@ -13,12 +14,8 @@ function guitar(overrides: Partial<Guitar>): Guitar {
     colour: 'Sunburst',
     strings: 6,
     pickupConfig: 'SSS',
-    purchaseDate: '',
-    purchasePrice: null,
-    estimatedValue: null,
     conditionNotes: 'Light checking',
     notes: 'Maple neck',
-    photos: [],
     photoPaths: [],
     createdAt: '',
     updatedAt: '',
@@ -79,6 +76,28 @@ describe('filterGuitars', () => {
     expect(
       filterGuitars(collection, { type: 'electric', query: 'fender' }).map((g) => g.id),
     ).toEqual(['1']);
+  });
+
+  it('filters by item kind and status', () => {
+    const rack = [
+      guitar({ id: 'g', itemKind: 'guitar', status: 'for_sale' }),
+      guitar({ id: 'a', itemKind: 'amp', status: 'keeping', make: 'Peavey', model: 'VK' }),
+      guitar({ id: 's', itemKind: 'guitar', status: 'sold' }),
+    ];
+    expect(filterGuitars(rack, { kind: 'amp' }).map((item) => item.id)).toEqual(['a']);
+    expect(filterGuitars(rack, { status: 'for_sale' }).map((item) => item.id)).toEqual(['g']);
+    expect(filterGuitars(rack, { kind: 'guitar', status: 'sold' }).map((item) => item.id)).toEqual([
+      's',
+    ]);
+    expect(filterGuitars(rack, { kind: 'amp', type: 'electric' }).map((item) => item.id)).toEqual([
+      'a',
+    ]);
+  });
+
+  it('searches details', () => {
+    expect(
+      filterGuitars([guitar({ details: 'wheat grille cloth' })], { query: 'grille' }),
+    ).toHaveLength(1);
   });
 });
 

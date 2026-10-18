@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
+import { supabaseConfigIssues } from './lib/supabase';
 import { Header } from './components/Header';
 import { AuthPage } from './pages/AuthPage';
 import { CollectionPage } from './pages/CollectionPage';
@@ -10,6 +11,7 @@ import { useGuitars } from './store';
 
 export default function App() {
   const { configured, ready: authReady, user } = useAuth();
+  const configIssues = supabaseConfigIssues();
   const { error } = useGuitars();
 
   return (
@@ -26,7 +28,7 @@ export default function App() {
       ) : null}
       <main id="main">
         {!configured ? (
-          <SetupPage />
+          <SetupPage issues={configIssues} />
         ) : !authReady ? (
           <p className="lede">Opening the catalogue…</p>
         ) : !user ? (

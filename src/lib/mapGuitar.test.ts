@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { emptyDraft } from '../types';
 import { classifyDraftPhotos, draftToRow, mapGuitarRow, toNumber } from './mapGuitar';
 import type { GuitarRow } from './mapGuitar';
 
@@ -42,26 +43,57 @@ describe('mapGuitarRow', () => {
   it('falls back unknown types to other', () => {
     expect(mapGuitarRow({ ...row, type: 'lap-steel' }, []).type).toBe('other');
   });
+
+  it('maps inventory columns and defaults a legacy row to a kept guitar', () => {
+    expect(mapGuitarRow(row, []).status).toBe('keeping');
+    expect(mapGuitarRow(row, []).itemKind).toBe('guitar');
+    const amp = mapGuitarRow(
+      {
+        ...row,
+        item_kind: 'amp',
+        status: 'for_sale',
+        strings: null,
+        list_price: '250',
+        floor_price: 160,
+        insurance_low: '300',
+        insurance_high: 350,
+        insurance_value: '300-350',
+        quantity: 1,
+        details: 'Works well',
+        name: 'Fender Acoustasonic Junior',
+      },
+      [],
+    );
+    expect(amp).toMatchObject({
+      itemKind: 'amp',
+      status: 'for_sale',
+      strings: null,
+      listPrice: 250,
+      floorPrice: 160,
+      insuranceLow: 300,
+      insuranceHigh: 350,
+      insuranceValue: '300-350',
+      name: 'Fender Acoustasonic Junior',
+      details: 'Works well',
+    });
+  });
 });
 
 describe('draftToRow', () => {
-  it('stores empty purchase dates as null', () => {
+  it('stores empty purchase dates as null and clears sale fields unless sold', () => {
     const payload = draftToRow(
       {
+        ...emptyDraft,
         make: 'Gibson',
         model: 'Les Paul',
         year: 1959,
-        serialNumber: '',
         type: 'electric',
         colour: 'Burst',
-        strings: 6,
         pickupConfig: 'HH',
-        purchaseDate: '',
-        purchasePrice: null,
-        estimatedValue: null,
-        conditionNotes: '',
-        notes: '',
-        photos: [],
+        status: 'for_sale',
+        soldDate: '2024-01-01',
+        soldPrice: 1000,
+        listPrice: 1200,
       },
       'u1',
       'g2',
@@ -69,6 +101,36 @@ describe('draftToRow', () => {
     );
     expect(payload.purchase_date).toBeNull();
     expect(payload.user_id).toBe('u1');
+    expect(payload.sold_date).toBeNull();
+    expect(payload.sold_price).toBeNull();
+    expect(payload.list_price).toBe(1200);
+    expect(payload.status).toBe('for_sale');
+  });
+
+  it('drops guitar-only specs for an amp and keeps a sale', () => {
+    const payload = draftToRow(
+      {
+        ...emptyDraft,
+        make: 'Fender',
+        model: 'Twin',
+        itemKind: 'amp',
+        type: 'electric',
+        strings: 6,
+        pickupConfig: 'SSS',
+        status: 'sold',
+        soldDate: '2024-05-01',
+        soldPrice: 800,
+      },
+      'u1',
+      'a1',
+      [],
+    );
+    expect(payload.item_kind).toBe('amp');
+    expect(payload.strings).toBeNull();
+    expect(payload.pickup_config).toBe('');
+    expect(payload.type).toBe('other');
+    expect(payload.sold_date).toBe('2024-05-01');
+    expect(payload.sold_price).toBe(800);
   });
 });
 
