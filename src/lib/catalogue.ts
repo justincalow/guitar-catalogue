@@ -15,7 +15,16 @@ function throwIfError(
   if (!error) return;
   if (error.code === 'PGRST205') {
     throw new Error(
-      'The guitars table is not in this Supabase project yet. Paste supabase/migrations/20260919120000_guitars_and_photos.sql into the SQL editor and run it.',
+      'The guitars table is not in this Supabase project yet. Paste supabase/migrations/20260919120000_guitars_and_photos.sql into the SQL editor and run it, then run supabase/migrations/20261018120000_inventory_guitars_and_amps.sql.',
+    );
+  }
+  if (
+    error.code === 'PGRST204' ||
+    /schema cache/i.test(error.message) ||
+    /column .* does not exist/i.test(error.message)
+  ) {
+    throw new Error(
+      'The catalogue is missing inventory columns. Paste supabase/migrations/20261018120000_inventory_guitars_and_amps.sql into the Supabase SQL editor and run it, then reload.',
     );
   }
   throw new Error(error.message || fallback);
@@ -94,7 +103,7 @@ export async function createGuitar(
   const { data, error } = await getSupabase().from('guitars').insert(row).select('*').single();
   if (error) {
     await removePhotoPaths(photoPaths);
-    throw new Error(error.message || 'Could not save that guitar.');
+    throwIfError(error, 'Could not save that item.');
   }
   return hydrate(data as GuitarRow);
 }
@@ -109,10 +118,12 @@ export async function saveGuitar(
   const { data, error } = await getSupabase()
     .from('guitars')
     .update({
+      name: row.name,
       make: row.make,
       model: row.model,
       year: row.year,
       serial_number: row.serial_number,
+      item_kind: row.item_kind,
       type: row.type,
       colour: row.colour,
       strings: row.strings,
@@ -123,17 +134,30 @@ export async function saveGuitar(
       condition_notes: row.condition_notes,
       notes: row.notes,
       photos: row.photos,
+      status: row.status,
+      list_price: row.list_price,
+      floor_price: row.floor_price,
+      value_range: row.value_range,
+      insurance_low: row.insurance_low,
+      insurance_high: row.insurance_high,
+      insurance_value: row.insurance_value,
+      insurance_basis: row.insurance_basis,
+      insurance_confidence: row.insurance_confidence,
+      quantity: row.quantity,
+      details: row.details,
+      sold_date: row.sold_date,
+      sold_price: row.sold_price,
     })
     .eq('id', existing.id)
     .select('*')
     .single();
-  throwIfError(error, 'Could not update that guitar.');
+  throwIfError(error, 'Could not update that item.');
   return hydrate(data as GuitarRow);
 }
 
 export async function removeGuitar(guitar: Guitar): Promise<void> {
   const { error } = await getSupabase().from('guitars').delete().eq('id', guitar.id);
-  throwIfError(error, 'Could not delete that guitar.');
+  throwIfError(error, 'Could not delete that item.');
   await removePhotoPaths(guitar.photoPaths);
 }
 
@@ -146,24 +170,48 @@ export async function importGuitar(userId: string, guitar: Guitar): Promise<void
   throwIfError(lookupError, 'Could not check the cloud catalogue.');
   if (existing) return;
 
-  await createGuitar(
-    userId,
-    {
-      make: guitar.make,
-      model: guitar.model,
-      year: guitar.year,
-      serialNumber: guitar.serialNumber,
-      type: guitar.type,
-      colour: guitar.colour,
-      strings: guitar.strings,
-      pickupConfig: guitar.pickupConfig,
-      purchaseDate: guitar.purchaseDate,
-      purchasePrice: guitar.purchasePrice,
-      estimatedValue: guitar.estimatedValue,
-      conditionNotes: guitar.conditionNotes,
-      notes: guitar.notes,
-      photos: guitar.photos,
-    },
-    guitar.id,
-  );
+  await createGuitar(userId, draftFromGuitar(guitar), guitar.id);
+}
+
+function draftFromGuitar(guitar: Guitar): GuitarDraft {
+  return {
+    name: guitar.name ?? '',
+    make: guitar.make,
+    model: guitar.model,
+    year: guitar.year,
+    serialNumber: guitar.serialNumber,
+    itemKind: guitar.itemKind ?? 'guitar',
+    type: guitar.type,
+    colour: guitar.colour,
+    strings: guitar.strings ?? (guitar.itemKind === 'amp' ? null : 6),
+    pickupConfig: guitar.pickupConfig ?? '',
+    purchaseDate: guitar.purchaseDate,
+    purchasePrice: guitar.purchasePrice,
+    estimatedValue: guitar.estimatedValue,
+    conditionNotes: guitar.conditionNotes,
+    notes: guitar.notes,
+    photos: guitar.photos,
+    status: guitar.status ?? 'keeping',
+    listPrice: guitar.listPrice ?? null,
+    floorPrice: guitar.floorPrice ?? null,
+    valueRange: guitar.valueRange ?? '',
+    insuranceLow: guitar.insuranceLow ?? null,
+    insuranceHigh: guitar.insuranceHigh ?? null,
+    insuranceValue: guitar.insuranceValue ?? '',
+    insuranceBasis: guitar.insuranceBasis ?? '',
+    insuranceConfidence: guitar.insuranceConfidence ?? '',
+    quantity: guitar.quantity ?? 1,
+    details: guitar.details ?? '',
+    soldDate: guitar.soldDate ?? '',
+    soldPrice: guitar.soldPrice ?? null,
+  };
+}
+
+/** Insert inventory rows with no photos. One request so a failure does not leave a partial import. */
+export async function importInventory(userId: string, drafts: GuitarDraft[]): Promise<number> {
+  if (drafts.length === 0) return 0;
+  const rows = drafts.map((draft) => draftToRow(draft, userId, crypto.randomUUID(), []));
+  const { error } = await getSupabase().from('guitars').insert(rows);
+  throwIfError(error, 'Could not import the inventory.');
+  return rows.length;
 }

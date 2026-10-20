@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { AmpSilhouette } from '../components/AmpSilhouette';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { GuitarSilhouette } from '../components/GuitarSilhouette';
+import { LinkedText } from '../components/LinkedText';
 import {
   formatDate,
   formatMoney,
   formatYear,
-  guitarTitle,
+  itemTitle,
+  kindLabel,
+  statusLabel,
   typeLabel,
 } from '../format';
 import { useGuitars } from '../store';
@@ -26,7 +30,7 @@ export function GuitarDetailPage() {
   if (!guitar) {
     return (
       <section className="missing">
-        <h1>Guitar not found</h1>
+        <h1>Item not found</h1>
         <p>It may have been removed from the catalogue.</p>
         <Link className="btn btn-primary" to="/">
           Back to the rack
@@ -35,10 +39,12 @@ export function GuitarDetailPage() {
     );
   }
 
-  const title = guitarTitle(guitar.make, guitar.model);
+  const title = itemTitle(guitar);
   const photos = guitar.photos;
   const photo = photos[Math.min(activePhoto, Math.max(photos.length - 1, 0))];
   const guitarId = guitar.id;
+  const isAmp = guitar.itemKind === 'amp';
+  const noun = isAmp ? 'amp' : 'guitar';
 
   async function onDelete() {
     setBusy(true);
@@ -58,7 +64,11 @@ export function GuitarDetailPage() {
               <img src={photo} alt={title} />
             ) : (
               <div className="placeholder-photo">
-                <GuitarSilhouette className="empty-art" />
+                {isAmp ? (
+                  <AmpSilhouette className="empty-art" />
+                ) : (
+                  <GuitarSilhouette className="empty-art" />
+                )}
               </div>
             )}
           </div>
@@ -80,37 +90,81 @@ export function GuitarDetailPage() {
         </div>
 
         <div className="detail-head">
-          <div className="eyebrow">{typeLabel(guitar.type)}</div>
+          <div className="eyebrow">
+            {kindLabel(guitar.itemKind)}
+            {isAmp ? '' : ` · ${typeLabel(guitar.type)}`}
+            {` · ${statusLabel(guitar.status)}`}
+          </div>
           <h1 className="detail-title">{title}</h1>
           <p className="lede">{formatYear(guitar.year)}</p>
           <div className="detail-actions">
             <Link className="btn btn-primary" to={`/guitar/${guitar.id}/edit`}>
               Edit
             </Link>
-            <button
-              className="btn btn-danger"
-              type="button"
-              onClick={() => setConfirming(true)}
-            >
+            <button className="btn btn-danger" type="button" onClick={() => setConfirming(true)}>
               Delete
             </button>
           </div>
           <dl className="specs">
             <div>
+              <dt>Make</dt>
+              <dd>{guitar.make || '—'}</dd>
+            </div>
+            <div>
+              <dt>Model</dt>
+              <dd>{guitar.model || '—'}</dd>
+            </div>
+            <div>
               <dt>Serial</dt>
               <dd>{guitar.serialNumber || '—'}</dd>
+            </div>
+            <div>
+              <dt>Quantity</dt>
+              <dd>{guitar.quantity}</dd>
             </div>
             <div>
               <dt>Colour / finish</dt>
               <dd>{guitar.colour || '—'}</dd>
             </div>
+            {isAmp ? null : (
+              <>
+                <div>
+                  <dt>Strings</dt>
+                  <dd>{guitar.strings ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Pickups</dt>
+                  <dd>{guitar.pickupConfig || '—'}</dd>
+                </div>
+              </>
+            )}
             <div>
-              <dt>Strings</dt>
-              <dd>{guitar.strings}</dd>
+              <dt>List price</dt>
+              <dd>{formatMoney(guitar.listPrice)}</dd>
             </div>
             <div>
-              <dt>Pickups</dt>
-              <dd>{guitar.pickupConfig || '—'}</dd>
+              <dt>Floor price</dt>
+              <dd>{formatMoney(guitar.floorPrice)}</dd>
+            </div>
+            <div>
+              <dt>Value range</dt>
+              <dd>{guitar.valueRange || '—'}</dd>
+            </div>
+            <div>
+              <dt>Insurance low</dt>
+              <dd>{formatMoney(guitar.insuranceLow)}</dd>
+            </div>
+            <div>
+              <dt>Insurance high</dt>
+              <dd>{formatMoney(guitar.insuranceHigh)}</dd>
+            </div>
+            <div>
+              <dt>Insurance / replacement</dt>
+              <dd>{guitar.insuranceValue || '—'}</dd>
+            </div>
+            <div>
+              <dt>Insurance confidence</dt>
+              <dd>{guitar.insuranceConfidence || '—'}</dd>
             </div>
             <div>
               <dt>Purchased</dt>
@@ -124,29 +178,55 @@ export function GuitarDetailPage() {
               <dt>Estimated value</dt>
               <dd>{formatMoney(guitar.estimatedValue)}</dd>
             </div>
+            {guitar.status === 'sold' ? (
+              <>
+                <div>
+                  <dt>Sold</dt>
+                  <dd>{formatDate(guitar.soldDate)}</dd>
+                </div>
+                <div>
+                  <dt>Sold price</dt>
+                  <dd>{formatMoney(guitar.soldPrice)}</dd>
+                </div>
+              </>
+            ) : null}
           </dl>
         </div>
       </div>
 
+      {guitar.details ? (
+        <section className="notes-block">
+          <h2>Details</h2>
+          <LinkedText text={guitar.details} />
+        </section>
+      ) : null}
+
+      {guitar.insuranceBasis ? (
+        <section className="notes-block">
+          <h2>Insurance basis</h2>
+          <LinkedText text={guitar.insuranceBasis} />
+        </section>
+      ) : null}
+
       {guitar.conditionNotes ? (
         <section className="notes-block">
           <h2>Condition</h2>
-          <p>{guitar.conditionNotes}</p>
+          <LinkedText text={guitar.conditionNotes} />
         </section>
       ) : null}
 
       {guitar.notes ? (
         <section className="notes-block">
           <h2>Notes</h2>
-          <p>{guitar.notes}</p>
+          <LinkedText text={guitar.notes} />
         </section>
       ) : null}
 
       <ConfirmDialog
         open={confirming}
-        title="Remove this guitar?"
+        title={`Remove this ${noun}?`}
         message={`“${title}” will be deleted from your catalogue on every device. This cannot be undone.`}
-        confirmLabel={busy ? 'Removing…' : 'Delete guitar'}
+        confirmLabel={busy ? 'Removing…' : `Delete ${noun}`}
         onClose={() => setConfirming(false)}
         onConfirm={() => {
           if (!busy) void onDelete();

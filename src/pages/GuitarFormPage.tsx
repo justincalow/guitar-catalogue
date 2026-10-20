@@ -1,6 +1,6 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { GuitarForm } from '../components/GuitarForm';
-import { guitarTitle } from '../format';
+import { itemTitle } from '../format';
 import { useGuitars } from '../store';
 import type { GuitarDraft } from '../types';
 
@@ -27,13 +27,13 @@ export function GuitarFormPage() {
   return (
     <section className="form-page">
       <Link className="crumb" to={guitar ? `/guitar/${guitar.id}` : '/'}>
-        ← {guitar ? guitarTitle(guitar.make, guitar.model) : 'The rack'}
+        ← {guitar ? itemTitle(guitar) : 'The rack'}
       </Link>
-      <h1>{editing ? 'Edit guitar' : 'Add a guitar'}</h1>
+      <h1>{editing ? 'Edit item' : 'Add an item'}</h1>
       <p className="lede">
         {editing
           ? 'Update the record. Changes sync to your cloud catalogue.'
-          : 'Log the instrument as you would in a workshop book — specs, value, and a photo or two.'}
+          : 'Log a guitar or an amp — specs, CAD values, and a photo or two. Mark it sold to keep the history.'}
       </p>
       <GuitarForm
         guitar={guitar}
