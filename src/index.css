@@ -500,6 +500,28 @@ main {
   background: var(--bg-card);
 }
 
+button.hero-photo {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  cursor: zoom-in;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+button.hero-photo img {
+  position: absolute;
+  inset: 0;
+}
+
+button.hero-photo:focus-visible,
+.thumbs button:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
 .thumbs {
   display: flex;
   flex-wrap: wrap;
@@ -514,7 +536,7 @@ main {
   border-radius: 8px;
   overflow: hidden;
   border: 2px solid transparent;
-  cursor: pointer;
+  cursor: zoom-in;
   background: #2a221b;
 }
 
@@ -700,7 +722,7 @@ legend {
 
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 0.7rem;
 }
 
@@ -718,8 +740,26 @@ legend {
   object-fit: cover;
 }
 
-.photo-tile button {
+.photo-main-badge {
   position: absolute;
+  z-index: 1;
+  top: 0.35rem;
+  left: 0.35rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: var(--brass);
+  color: #1a140e;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.photo-remove {
+  position: absolute;
+  z-index: 1;
   top: 0.35rem;
   right: 0.35rem;
   border: 0;
@@ -728,7 +768,56 @@ legend {
   color: var(--ink);
   width: 1.8rem;
   height: 1.8rem;
+  padding: 0;
   cursor: pointer;
+  line-height: 1;
+}
+
+.photo-tile-actions {
+  position: absolute;
+  z-index: 1;
+  left: 0.3rem;
+  right: 0.3rem;
+  bottom: 0.3rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.photo-tile-actions button {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(20, 16, 12, 0.82);
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font-size: 0.95rem;
+}
+
+.photo-remove:hover,
+.photo-tile-actions button:hover:not(:disabled):not([aria-pressed='true']) {
+  color: var(--brass-bright);
+}
+
+.photo-tile-actions button[aria-pressed='true'] {
+  background: var(--brass);
+  color: #1a140e;
+}
+
+.photo-tile-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.photo-remove:focus-visible,
+.photo-tile-actions button:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
 }
 
 .file-input {
@@ -997,6 +1086,111 @@ code {
 
   .list-row .badge {
     grid-column: 2;
+  }
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding: 4.25rem 4.75rem 3.5rem;
+  background: rgba(8, 6, 4, 0.92);
+  color: var(--ink);
+  touch-action: none;
+  user-select: none;
+}
+
+.lightbox:focus {
+  outline: none;
+}
+
+.lightbox-stage {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lightbox-close,
+.lightbox-nav {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid var(--line-strong);
+  background: rgba(20, 16, 12, 0.82);
+  color: var(--ink);
+  border-radius: 999px;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.lightbox-close {
+  top: 0.85rem;
+  right: 0.85rem;
+  font-size: 1.45rem;
+}
+
+.lightbox-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.8rem;
+}
+
+.lightbox-prev {
+  left: 0.85rem;
+}
+
+.lightbox-next {
+  right: 0.85rem;
+}
+
+.lightbox-close:hover,
+.lightbox-nav:hover {
+  color: var(--brass-bright);
+  border-color: var(--brass);
+}
+
+.lightbox-close:focus-visible,
+.lightbox-nav:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.lightbox-count {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1rem;
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 640px) {
+  .lightbox {
+    padding: 3.75rem 0.75rem 3.25rem;
   }
 }
 

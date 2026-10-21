@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { emptyDraft } from '../types';
-import { classifyDraftPhotos, draftToRow, mapGuitarRow, toNumber } from './mapGuitar';
+import {
+  classifyDraftPhotos,
+  draftToRow,
+  mapGuitarRow,
+  removedPhotoPaths,
+  toNumber,
+} from './mapGuitar';
 import type { GuitarRow } from './mapGuitar';
 
 const row: GuitarRow = {
@@ -147,6 +153,25 @@ describe('classifyDraftPhotos', () => {
       { type: 'keep', path: 'u1/g1/a.jpg' },
       { type: 'upload', dataUrl: 'data:image/jpeg;base64,abc' },
     ]);
+  });
+
+  it('reorders existing photos into kept paths without uploads or deletions', () => {
+    const existing = {
+      photos: ['https://signed/a.jpg', 'https://signed/b.jpg', 'https://signed/c.jpg'],
+      photoPaths: ['u1/g1/a.jpg', 'u1/g1/b.jpg', 'u1/g1/c.jpg'],
+    };
+    const plan = classifyDraftPhotos(
+      ['https://signed/c.jpg', 'https://signed/a.jpg', 'https://signed/b.jpg'],
+      existing,
+    );
+
+    expect(plan).toEqual([
+      { type: 'keep', path: 'u1/g1/c.jpg' },
+      { type: 'keep', path: 'u1/g1/a.jpg' },
+      { type: 'keep', path: 'u1/g1/b.jpg' },
+    ]);
+    expect(plan.some((item) => item.type === 'upload')).toBe(false);
+    expect(removedPhotoPaths(existing.photoPaths, plan)).toEqual([]);
   });
 });
 
