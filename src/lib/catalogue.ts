@@ -4,6 +4,7 @@ import {
   classifyDraftPhotos,
   draftToRow,
   mapGuitarRow,
+  removedPhotoPaths,
   type GuitarRow,
 } from './mapGuitar';
 import { getSupabase, PHOTO_BUCKET, SIGNED_URL_TTL_SECONDS } from './supabase';
@@ -76,9 +77,7 @@ async function persistPhotoPlan(
     else nextPaths.push(await uploadDataUrl(userId, guitarId, item.dataUrl));
   }
 
-  const previous = existing?.photoPaths ?? [];
-  const removed = previous.filter((path) => !nextPaths.includes(path));
-  await removePhotoPaths(removed);
+  await removePhotoPaths(removedPhotoPaths(existing?.photoPaths ?? [], plan));
   return nextPaths;
 }
 

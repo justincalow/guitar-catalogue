@@ -167,6 +167,7 @@ export function classifyDraftPhotos(
 ): PhotoPlanItem[] {
   return draftPhotos.map((photo) => {
     if (isDataUrl(photo)) return { type: 'upload', dataUrl: photo };
+    // Match the signed URL, not the array position, so a reorder stays a keep.
     const index = existing?.photos.indexOf(photo) ?? -1;
     if (index >= 0 && existing) {
       return { type: 'keep', path: existing.photoPaths[index] };
@@ -176,4 +177,10 @@ export function classifyDraftPhotos(
     }
     throw new Error('A photo could not be matched to storage. Try removing and adding it again.');
   });
+}
+
+/** Storage paths dropped from a plan. New uploads are not paths yet, so they are not kept. */
+export function removedPhotoPaths(previous: string[], plan: PhotoPlanItem[]): string[] {
+  const kept = new Set(plan.flatMap((item) => (item.type === 'keep' ? [item.path] : [])));
+  return previous.filter((path) => !kept.has(path));
 }

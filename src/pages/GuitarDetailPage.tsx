@@ -4,6 +4,7 @@ import { AmpSilhouette } from '../components/AmpSilhouette';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { GuitarSilhouette } from '../components/GuitarSilhouette';
 import { LinkedText } from '../components/LinkedText';
+import { PhotoLightbox } from '../components/PhotoLightbox';
 import {
   formatDate,
   formatMoney,
@@ -20,6 +21,7 @@ export function GuitarDetailPage() {
   const navigate = useNavigate();
   const { ready, getById, deleteGuitar } = useGuitars();
   const [activePhoto, setActivePhoto] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -41,8 +43,18 @@ export function GuitarDetailPage() {
 
   const title = itemTitle(guitar);
   const photos = guitar.photos;
-  const photo = photos[Math.min(activePhoto, Math.max(photos.length - 1, 0))];
+  const activeIndex = photos.length === 0 ? 0 : Math.min(activePhoto, photos.length - 1);
+  const photo = photos[activeIndex];
   const guitarId = guitar.id;
+
+  // A thumbnail click selects that photo as the hero and opens the lightbox on
+  // it. Clicking the hero opens the lightbox on the current hero. Prev/next
+  // and swipe inside the lightbox update the hero, so closing leaves the last
+  // viewed photo on the page.
+  function openLightbox(index: number) {
+    setActivePhoto(index);
+    setLightboxOpen(true);
+  }
   const isAmp = guitar.itemKind === 'amp';
   const noun = isAmp ? 'amp' : 'guitar';
 
@@ -59,10 +71,23 @@ export function GuitarDetailPage() {
       </Link>
       <div className="detail-hero">
         <div>
-          <div className="hero-photo">
-            {photo ? (
-              <img src={photo} alt={title} />
-            ) : (
+          {photo ? (
+            <button
+              type="button"
+              className="hero-photo"
+              aria-label={
+                photos.length > 1
+                  ? `View ${title} photo ${activeIndex + 1} of ${photos.length} full size`
+                  : `View ${title} full size`
+              }
+              aria-haspopup="dialog"
+              aria-expanded={lightboxOpen}
+              onClick={() => openLightbox(activeIndex)}
+            >
+              <img src={photo} alt="" />
+            </button>
+          ) : (
+            <div className="hero-photo">
               <div className="placeholder-photo">
                 {isAmp ? (
                   <AmpSilhouette className="empty-art" />
@@ -70,17 +95,19 @@ export function GuitarDetailPage() {
                   <GuitarSilhouette className="empty-art" />
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
           {photos.length > 1 ? (
             <div className="thumbs">
               {photos.map((src, index) => (
                 <button
                   key={`${index}-${src.slice(0, 18)}`}
                   type="button"
-                  aria-label={`Show photo ${index + 1}`}
-                  aria-current={index === activePhoto}
-                  onClick={() => setActivePhoto(index)}
+                  aria-label={`View photo ${index + 1} full size`}
+                  aria-current={index === activeIndex}
+                  aria-haspopup="dialog"
+                  aria-expanded={lightboxOpen && index === activeIndex}
+                  onClick={() => openLightbox(index)}
                 >
                   <img src={src} alt="" />
                 </button>
@@ -220,6 +247,16 @@ export function GuitarDetailPage() {
           <h2>Notes</h2>
           <LinkedText text={guitar.notes} />
         </section>
+      ) : null}
+
+      {lightboxOpen && photo ? (
+        <PhotoLightbox
+          photos={photos}
+          index={activeIndex}
+          label={title}
+          onClose={() => setLightboxOpen(false)}
+          onIndexChange={setActivePhoto}
+        />
       ) : null}
 
       <ConfirmDialog
